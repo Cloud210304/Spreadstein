@@ -9,6 +9,7 @@ public class UIManager : MonoBehaviour
     public GameObject ScamEmail;
     public GameObject SpyNetwork;
     public GameObject Reboot;
+    public GameObject ChickenFights;
 
     [Header("UI Player")]
     public GameObject PlayerUI;
@@ -30,6 +31,7 @@ public class UIManager : MonoBehaviour
         ScamEmail.SetActive(false);
         SpyNetwork.SetActive(false);
         Reboot.SetActive(false);
+        ChickenFights.SetActive(false);
     }
 
     public void ShowStocks()
@@ -39,6 +41,7 @@ public class UIManager : MonoBehaviour
         ScamEmail.SetActive(false);
         SpyNetwork.SetActive(false);
         Reboot.SetActive(false);
+        ChickenFights.SetActive(false);
     }
 
     public void ShowEmails()
@@ -48,6 +51,7 @@ public class UIManager : MonoBehaviour
         ScamEmail.SetActive(true);
         SpyNetwork.SetActive(false);
         Reboot.SetActive(false);
+        ChickenFights.SetActive(false);
     }
 
     public void ShowSpyNetwork()
@@ -57,6 +61,17 @@ public class UIManager : MonoBehaviour
         ScamEmail.SetActive(false);
         SpyNetwork.SetActive(true);
         Reboot.SetActive(false);
+        ChickenFights.SetActive(false);
+    }
+
+    public void ShowChickenFights()
+    {
+        Slots.SetActive(false);
+        Stocks.SetActive(false);
+        ScamEmail.SetActive(false);
+        SpyNetwork.SetActive(false);
+        Reboot.SetActive(false);
+        ChickenFights.SetActive(true);
     }
 
     public void ShowReboot()
@@ -66,6 +81,7 @@ public class UIManager : MonoBehaviour
         ScamEmail.SetActive(false);
         SpyNetwork.SetActive(false);
         Reboot.SetActive(true);
+        ChickenFights.SetActive(false);
 
         PlayerUI.SetActive(false);
 

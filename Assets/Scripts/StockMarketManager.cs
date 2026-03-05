@@ -155,8 +155,8 @@ public class SimpleStockMarket : MonoBehaviour
 
         foreach (Company company in companies)
         {
-            // Random crash between -50% and -75%
-            float crashPercent = Random.Range(50f, 75f);
+            // Random crash between -20% and -50%
+            float crashPercent = Random.Range(20f, 50f);
 
             float crashAmount = company.currentPrice * (crashPercent / 100f);
             company.currentPrice -= crashAmount;

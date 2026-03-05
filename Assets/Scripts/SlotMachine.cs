@@ -13,7 +13,7 @@ public class SlotMachine : MonoBehaviour
     public int spinCost = 50;
 
     [Header("Super Win Sprite")]
-    public Sprite superWinSprite; 
+    public Sprite superWinSprite;
 
     [Header("Slot UI Images (Assign 3 UI Images)")]
     public Image slot1;
@@ -32,6 +32,9 @@ public class SlotMachine : MonoBehaviour
     public Text resultText;
 
     private bool isSpinning = false;
+
+    // ? NEW: Track number of spins
+    private int totalSpins = 0;
 
     void Start()
     {
@@ -78,6 +81,16 @@ public class SlotMachine : MonoBehaviour
         slot3.sprite = final3;
 
         CheckWin(final1, final2, final3);
+
+        // ? NEW: Increment spin counter
+        totalSpins++;
+
+        // ? NEW: Every 10 spins, add 1 Aura
+        if (totalSpins % 10 == 0)
+        {
+            currencyManager.AddAura(1);
+            Debug.Log("Bonus Aura +1 for 10 spins!");
+        }
 
         spinButton.interactable = true;
         isSpinning = false;
