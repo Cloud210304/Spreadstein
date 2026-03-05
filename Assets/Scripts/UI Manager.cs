@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class UIManager : MonoBehaviour
 {
@@ -7,20 +8,28 @@ public class UIManager : MonoBehaviour
     public GameObject Stocks;
     public GameObject ScamEmail;
     public GameObject SpyNetwork;
+    public GameObject Reboot;
+
+    [Header("UI Player")]
+    public GameObject PlayerUI;
+
+    [Header("Reboot Animation")]
+    public Animator RebootAnimator;     // Assign in Inspector
+    public string rebootAnimationName = "RebootAnim"; // Animation state name
+    public float rebootAnimationLength = 3f; // Fallback duration
 
     void Start()
     {
-        // Set default UI state
         ShowMainMenu();
     }
 
     public void ShowMainMenu()
     {
-
         Slots.SetActive(true);
         Stocks.SetActive(false);
         ScamEmail.SetActive(false);
         SpyNetwork.SetActive(false);
+        Reboot.SetActive(false);
     }
 
     public void ShowStocks()
@@ -29,7 +38,7 @@ public class UIManager : MonoBehaviour
         Stocks.SetActive(true);
         ScamEmail.SetActive(false);
         SpyNetwork.SetActive(false);
-
+        Reboot.SetActive(false);
     }
 
     public void ShowEmails()
@@ -38,18 +47,51 @@ public class UIManager : MonoBehaviour
         Stocks.SetActive(false);
         ScamEmail.SetActive(true);
         SpyNetwork.SetActive(false);
-
+        Reboot.SetActive(false);
     }
 
     public void ShowSpyNetwork()
     {
-
         Slots.SetActive(false);
         Stocks.SetActive(false);
         ScamEmail.SetActive(false);
         SpyNetwork.SetActive(true);
+        Reboot.SetActive(false);
     }
 
+    public void ShowReboot()
+    {
+        Slots.SetActive(false);
+        Stocks.SetActive(false);
+        ScamEmail.SetActive(false);
+        SpyNetwork.SetActive(false);
+        Reboot.SetActive(true);
+
+        PlayerUI.SetActive(false);
+
+        // Start reboot sequence
+        StartCoroutine(PlayRebootSequence());
+    }
+
+    private IEnumerator PlayRebootSequence()
+    {
+        if (RebootAnimator != null)
+        {
+            RebootAnimator.Play(rebootAnimationName);
+
+            // Wait until animation finishes
+            yield return new WaitForSeconds(rebootAnimationLength);
+        }
+        else
+        {
+            Debug.LogWarning("Reboot Animator not assigned.");
+            yield return new WaitForSeconds(2f);
+        }
+
+        // After animation completes
+        PlayerUI.SetActive(true);
+        ShowMainMenu();
+    }
 
     public void QuitGame()
     {
