@@ -1,52 +1,81 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+
+[System.Serializable]
+public class SlotSymbol
+{
+    public string name;
+    public Sprite sprite;
+    public float multiplier;
+    [Range(0f, 1f)]
+    public float probability;
+}
 
 public class SlotMachine : MonoBehaviour
 {
     [Header("Currency")]
     public CurrencyManager currencyManager;
 
-    [Header("Win Settings")]
-    public int winReward = 200;
-    public int superWinReward = 1000;
-    public int spinCost = 50;
+    [Header("Bet Settings")]
+    public int currentBet = 50;
+    public int betStep = 5;
 
-    [Header("Super Win Sprite")]
-    public Sprite superWinSprite;
+    [Header("Symbols")]
+    public SlotSymbol[] symbols;
 
-    [Header("Slot UI Images (Assign 3 UI Images)")]
-    public Image slot1;
-    public Image slot2;
-    public Image slot3;
-
-    [Header("Possible Sprites (Assign in Inspector)")]
-    public Sprite[] possibleSprites;
+    [Header("Slot UI (5 Slots)")]
+    public Image[] slots = new Image[5];
 
     [Header("Spin Settings")]
-    public float spinDuration = 1.5f;
-    public float spinSpeed = 0.1f;
+    public float spinTimePerReel = 1.0f;
+    public float reelStopDelay = 0.3f; // delay between each reel stopping
+    public float spinSpeed = 0.05f;
 
     [Header("UI")]
     public Button spinButton;
+    public Button increaseBetButton;
+    public Button decreaseBetButton;
     public Text resultText;
+    public Text betText;
+    public Image rewardDisplay;
 
     private bool isSpinning = false;
-
-    // ? NEW: Track number of spins
     private int totalSpins = 0;
 
     void Start()
     {
         spinButton.onClick.AddListener(Spin);
+        increaseBetButton.onClick.AddListener(IncreaseBet);
+        decreaseBetButton.onClick.AddListener(DecreaseBet);
+
+        UpdateBetUI();
         resultText.text = "";
+    }
+
+    void IncreaseBet()
+    {
+        currentBet += betStep;
+        UpdateBetUI();
+    }
+
+    void DecreaseBet()
+    {
+        currentBet = Mathf.Max(betStep, currentBet - betStep);
+        UpdateBetUI();
+    }
+
+    void UpdateBetUI()
+    {
+        betText.text = "Bet: " + currentBet;
     }
 
     public void Spin()
     {
         if (!isSpinning)
         {
-            if (currencyManager.Spend(spinCost))
+            if (currencyManager.Spend(currentBet))
             {
                 StartCoroutine(SpinCoroutine());
             }
@@ -59,33 +88,48 @@ public class SlotMachine : MonoBehaviour
         spinButton.interactable = false;
         resultText.text = "Spinning...";
 
-        float timer = 0f;
+        int reelCount = slots.Length;
 
-        while (timer < spinDuration)
+        // ?? STEP 1: Pre-determine final results (important!)
+        SlotSymbol[] finalSymbols = new SlotSymbol[reelCount];
+        for (int i = 0; i < reelCount; i++)
         {
-            slot1.sprite = GetRandomSprite();
-            slot2.sprite = GetRandomSprite();
-            slot3.sprite = GetRandomSprite();
-
-            timer += spinSpeed;
-            yield return new WaitForSeconds(spinSpeed);
+            finalSymbols[i] = GetRandomSymbol();
         }
 
-        // Final result
-        Sprite final1 = GetRandomSprite();
-        Sprite final2 = GetRandomSprite();
-        Sprite final3 = GetRandomSprite();
+        // ?? STEP 2: Spin reels independently
+        List<Coroutine> spinningReels = new List<Coroutine>();
 
-        slot1.sprite = final1;
-        slot2.sprite = final2;
-        slot3.sprite = final3;
+        for (int i = 0; i < reelCount; i++)
+        {
+            int index = i;
+            spinningReels.Add(StartCoroutine(SpinReel(index)));
+        }
 
-        CheckWin(final1, final2, final3);
+        // ? STEP 3: Stop reels one by one
+        for (int i = 0; i < reelCount; i++)
+        {
+            yield return new WaitForSeconds(reelStopDelay);
 
-        // ? NEW: Increment spin counter
+            // stop reel i by forcing final sprite
+            StopCoroutine(spinningReels[i]);
+            slots[i].sprite = finalSymbols[i].sprite;
+        }
+
+        // small pause after last reel
+        yield return new WaitForSeconds(0.3f);
+
+        // ?? Check win
+        Sprite[] results = new Sprite[reelCount];
+        for (int i = 0; i < reelCount; i++)
+        {
+            results[i] = finalSymbols[i].sprite;
+        }
+
+        CheckWin(results);
+
         totalSpins++;
 
-        // ? NEW: Every 10 spins, add 1 Aura
         if (totalSpins % 10 == 0)
         {
             currencyManager.AddAura(1);
@@ -96,32 +140,76 @@ public class SlotMachine : MonoBehaviour
         isSpinning = false;
     }
 
-    Sprite GetRandomSprite()
+    IEnumerator SpinReel(int index)
     {
-        return possibleSprites[Random.Range(0, possibleSprites.Length)];
+        float timer = 0f;
+
+        while (true)
+        {
+            slots[index].sprite = GetRandomSymbol().sprite;
+            yield return new WaitForSeconds(spinSpeed);
+            timer += spinSpeed;
+        }
     }
 
-    void CheckWin(Sprite s1, Sprite s2, Sprite s3)
+    SlotSymbol GetRandomSymbol()
     {
-        if (s1 == s2 && s2 == s3)
+        float totalWeight = 0f;
+        foreach (var s in symbols)
+            totalWeight += s.probability;
+
+        float rand = Random.Range(0, totalWeight);
+        float current = 0f;
+
+        foreach (var s in symbols)
         {
-            // SUPER WIN condition
-            if (s1 == superWinSprite)
+            current += s.probability;
+            if (rand <= current)
+                return s;
+        }
+
+        return symbols[0];
+    }
+
+    void CheckWin(Sprite[] results)
+    {
+        Dictionary<Sprite, int> counts = new Dictionary<Sprite, int>();
+
+        foreach (Sprite s in results)
+        {
+            if (!counts.ContainsKey(s))
+                counts[s] = 0;
+
+            counts[s]++;
+        }
+
+        foreach (var pair in counts)
+        {
+            if (pair.Value >= 3)
             {
-                resultText.text = "SUPER WIN!!!";
-                currencyManager.Add(superWinReward);
-                Debug.Log("SUPER WIN!");
-            }
-            else
-            {
-                resultText.text = "YOU WIN!";
-                currencyManager.Add(winReward);
-                Debug.Log("Normal Win!");
+                SlotSymbol symbol = GetSymbolFromSprite(pair.Key);
+                int payout = Mathf.RoundToInt(currentBet * symbol.multiplier);
+
+                resultText.text = "WIN! x" + symbol.multiplier + " (" + payout + ")";
+                currencyManager.Add(payout);
+
+                rewardDisplay.sprite = symbol.sprite;
+                return;
             }
         }
-        else
+
+        resultText.text = "Try Again!";
+        rewardDisplay.sprite = null;
+    }
+
+    SlotSymbol GetSymbolFromSprite(Sprite sprite)
+    {
+        foreach (var s in symbols)
         {
-            resultText.text = "Try Again!";
+            if (s.sprite == sprite)
+                return s;
         }
+
+        return symbols[0];
     }
 }
